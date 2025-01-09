@@ -1,0 +1,184 @@
+## Validate-template
+
+aws cloudformation validate-template --template-body file://
+
+------ cc-net -------
+## S3 Sync ##
+aws s3 sync ./ s3://ccinfra/cf_templates/ --profile cc-net
+
+## #1 Create Route53 CloudWatch Policy ## # Has to be in US-East-1
+aws logs put-resource-policy --policy-name Route53-CldWtch-LogGroup --policy-document '{ "Version": "2012-10-17", "Statement": [ { "Sid": "Route53LogsToCloudWatchLogs", "Effect": "Allow", "Principal": { "Service": [ "route53.amazonaws.com" ] }, "Action":"*", "Resource": "*" } ] }' --region us-east-1 --profile cc-net
+
+aws logs describe-resource-policies --region us-east-1 --profile cc-net
+
+aws logs delete-resource-policy --policy-name Route53-CldWtch-LogGroup --region us-east-1 --profile cc-net
+
+
+
+## #2 Launch CloudwatchLogGroup ## # Has to be in US-East-1
+aws cloudformation create-stack --stack-name  cjw01-it2-cwlggrp-use1 --template-body file://2_R53_CWGrpLog.template  --region us-east-1 --profile cc-net
+
+## #3 Launch TransitGateway ##
+aws cloudformation create-stack --stack-name  cjw01-it2-tnsgw-usw2 --template-body file://3_TransitGateway.template  --region us-west-2 --profile cc-net
+
+
+## Launch VPC Cloudformation Corp ##
+aws cloudformation create-stack --stack-name cjw01-it2-corp1-usw2-vpc --template-body file://Corp-VPC-Var-USW2_CldWtchLogs.template --parameter ParameterKey=DeployBastion,ParameterValue=Yes ParameterKey=CFSS3Bucket,ParameterValue=http://s3-us-west-2.amazonaws.com/ccinfra/cf_templates/ ParameterKey=TRNSGWVPCStack,ParameterValue=cjw01-it2-tnsgw-usw2 --capabilities CAPABILITY_IAM --region us-west-2 --on-failure DO_NOTHING --profile cc-net
+
+---------------------
+## S3 Sync ##
+aws s3 sync ./ s3://ccinfra/cf_templates/
+
+## #1 Create Route53 CloudWatch Policy ## # Has to be in US-East-1
+aws logs put-resource-policy --policy-name Route53-CldWtch-LogGroup --policy-document '{ "Version": "2012-10-17", "Statement": [ { "Sid": "Route53LogsToCloudWatchLogs", "Effect": "Allow", "Principal": { "Service": [ "route53.amazonaws.com" ] }, "Action":"*", "Resource": "*" } ] }' --region us-east-1
+
+aws logs describe-resource-policies --region us-east-1
+
+aws logs delete-resource-policy --policy-name Route53-CldWtch-LogGroup --region us-east-1
+
+
+## #2 Launch Route53 CloudwatchLogGroup ## # Has to be in US-East-1
+aws cloudformation create-stack --stack-name  cjw01-it1-r53cwlggrp-use1 --template-body file://2_R53_CWGrpLog.template  --region us-east-1 --profile cc-net
+
+
+## #3 Launch TransitGateway ##
+aws cloudformation create-stack --stack-name  cjw01-it1-tnsgw-usw2 --template-body file://3_TransitGateway.template  --region us-west-2 --profile cc-net
+
+
+## #4 Launch SSMCloudwatchLogGroup ##
+aws cloudformation create-stack --stack-name  cjw01-it1-ssmcwlggrp-usw2 --template-body file://4_SSM_EC2_CWGrpLog.template  --region us-west-2 --profile cc-net
+
+
+## #5 KMS Key Creation ##
+aws kms create-key --region us-west-2
+# Get KeyID
+
+
+## #6 AWS System Manager - Session Manager - Preferences ##
+1. AWS Console
+2. AWS Systems Manager
+3. Session Manager
+4. Preferences
+5. Edit
+6. Check Key Management Service (KMS)
+  a. Select a KMS key in my current account.
+  b. Select the KEY created at step 5.
+7. Check CloudWatch logs
+  a. click Choose a log group name from the list
+  b. select the Log Groups with "SSMEC2-LogGroup" in the name.
+8. Click Save.
+
+
+## Launch VPC Cloudformation Corp USW2##
+aws cloudformation create-stack --stack-name cjw01-it1-corp-usw2-vpc --template-body file://Corp-VPC-Var-USW2.template --parameter ParameterKey=DeployBastion,ParameterValue=Yes ParameterKey=CFSS3Bucket,ParameterValue=http://s3-us-west-2.amazonaws.com/ccinfra/cf_templates/ ParameterKey=TRNSGWVPCStack,ParameterValue=cjw01-it2-tnsgw-usw2 --capabilities CAPABILITY_IAM --region us-west-2 --on-failure DO_NOTHING  --profile cc-net
+
+## Update VPC Cloudformation Corp USW2##
+aws cloudformation update-stack --stack-name cjw01-it1-corp-usw2-vpc --template-body file://Corp-VPC-Var-USW2.template --parameter ParameterKey=DeployBastion,ParameterValue=Yes ParameterKey=CFSS3Bucket,ParameterValue=http://s3-us-west-2.amazonaws.com/cc-infrafiles/cf_templates/ ParameterKey=TRNSGWVPCStack,ParameterValue=cjw01-it1-tnsgw-usw2 --region us-west-2 --profile cc-test
+
+
+## Launch VPC Cloudformation Corp1 USW2##
+aws cloudformation create-stack --stack-name cjw01-it2-corp1-usw2-vpc --template-body file://Corp1-VPC-Var-USW2.template --parameter ParameterKey=DeployBastion,ParameterValue=Yes ParameterKey=CFSS3Bucket,ParameterValue=http://s3-us-west-2.amazonaws.com/ccinfra/cf_templates/ ParameterKey=TRNSGWVPCStack,ParameterValue=cjw01-it2-tnsgw-usw2 --capabilities CAPABILITY_IAM --region us-west-2 --on-failure DO_NOTHING --profile cc-net
+
+## Update VPC Cloudformation Corp1 USW2##
+aws cloudformation update-stack --stack-name cjw01-it1-corp1-usw2-vpc --template-body file://Corp1-VPC-Var-USW2.template --parameter ParameterKey=DeployBastion,ParameterValue=Yes ParameterKey=CFSS3Bucket,ParameterValue=http://s3-us-west-2.amazonaws.com/cc-infrafiles/cf_templates/ ParameterKey=TRNSGWVPCStack,ParameterValue=cjw01-it1-tnsgw-usw2 --region us-west-2
+
+
+## Launch VPC Cloudformation Dev USW2##
+aws cloudformation create-stack --stack-name cjw01-it1-dev-usw2-vpc --template-body file://Dev-VPC-Var-USW2.template --parameter ParameterKey=DeployBastion,ParameterValue=Yes ParameterKey=CFSS3Bucket,ParameterValue=http://s3-us-west-2.amazonaws.com/cc-infrafiles/cf_templates/ ParameterKey=TRNSGWVPCStack,ParameterValue=cjw01-it1-tnsgw-usw2 --capabilities CAPABILITY_IAM --region us-west-2 --on-failure DO_NOTHING
+
+## Update VPC Cloudformation Dev USW2##
+aws cloudformation update-stack --stack-name cjw01-it1-dev-usw2-vpc --template-body file://Dev-VPC-Var-USW2.template --parameter ParameterKey=DeployBastion,ParameterValue=Yes ParameterKey=CFSS3Bucket,ParameterValue=http://s3-us-west-2.amazonaws.com/cc-infrafiles/cf_templates/ ParameterKey=TRNSGWVPCStack,ParameterValue=cjw01-it1-tnsgw-usw2 --region us-west-2
+
+
+## Launch VPC Cloudformation Prod USW2##
+aws cloudformation create-stack --stack-name cjw01-it1-prod-usw2-vpc --template-body file://Prod-VPC-Var-USW2.template --parameter ParameterKey=DeployBastion,ParameterValue=Yes ParameterKey=CFSS3Bucket,ParameterValue=http://s3-us-west-2.amazonaws.com/cc-infrafiles/cf_templates/ ParameterKey=TRNSGWVPCStack,ParameterValue=cjw01-it1-tnsgw-usw2 --capabilities CAPABILITY_IAM --region us-west-2 --on-failure DO_NOTHING
+
+## Update VPC Cloudformation Prod USW2##
+aws cloudformation update-stack --stack-name cjw01-it1-prod-usw2-vpc --template-body file://Prod-VPC-Var-USW2.template --parameter ParameterKey=DeployBastion,ParameterValue=Yes ParameterKey=CFSS3Bucket,ParameterValue=http://s3-us-west-2.amazonaws.com/cc-infrafiles/cf_templates/ ParameterKey=TRNSGWVPCStack,ParameterValue=cjw01-it1-tnsgw-usw2 --region us-west-2
+
+
+## TransitGateway Route updates
+./RteTble-Trnstgtwy.sh (AWS-Profile) (Region) (TransitGateway-CFN-Stackname)
+./RteTble-Trnstgtwy.sh default us-west-2 cjw01-it1-tnsgw-usw2
+
+
+------ US-EAST-2 -------
+## #3 Launch TransitGateway ##
+aws cloudformation create-stack --stack-name  cjw01-it1-tnsgw-use2 --template-body file://3_TransitGateway.template  --region us-east-2
+
+
+## Launch VPC Cloudformation Corp USE2##
+aws cloudformation create-stack --stack-name cjw01-it1-corp-use2-vpc --template-body file://Corp-VPC-Var-USE2.template --parameter ParameterKey=DeployBastion,ParameterValue=Yes ParameterKey=CFSS3Bucket,ParameterValue=http://s3-us-west-2.amazonaws.com/cc-infrafiles/cf_templates/ ParameterKey=TRNSGWVPCStack,ParameterValue=cjw01-it1-tnsgw-use2 --capabilities CAPABILITY_IAM --region us-east-2 --on-failure DO_NOTHING
+
+## Update VPC Cloudformation Corp USE2##
+aws cloudformation update-stack --stack-name cjw01-it1-corp-use2-vpc --template-body file://Corp-VPC-Var-USE2.template --parameter ParameterKey=DeployBastion,ParameterValue=Yes ParameterKey=CFSS3Bucket,ParameterValue=http://s3-us-west-2.amazonaws.com/cc-infrafiles/cf_templates/ ParameterKey=TRNSGWVPCStack,ParameterValue=cjw01-it1-tnsgw-use2 --region us-east-2
+
+
+## Launch VPC Cloudformation Corp1 USE2##
+aws cloudformation create-stack --stack-name cjw01-it1-corp1-use2-vpc --template-body file://Corp1-VPC-Var-USE2.template --parameter ParameterKey=DeployBastion,ParameterValue=Yes ParameterKey=CFSS3Bucket,ParameterValue=http://s3-us-west-2.amazonaws.com/cc-infrafiles/cf_templates/ ParameterKey=TRNSGWVPCStack,ParameterValue=cjw01-it1-tnsgw-use2 --capabilities CAPABILITY_IAM --region us-east-2 --on-failure DO_NOTHING
+
+## Update VPC Cloudformation Corp1 USE2##
+aws cloudformation update-stack --stack-name cjw01-it1-corp1-use2-vpc --template-body file://Corp1-VPC-Var-USE2.template --parameter ParameterKey=DeployBastion,ParameterValue=Yes ParameterKey=CFSS3Bucket,ParameterValue=http://s3-us-west-2.amazonaws.com/cc-infrafiles/cf_templates/ ParameterKey=TRNSGWVPCStack,ParameterValue=cjw01-it1-tnsgw-use2 --region us-east-2
+
+
+## Launch VPC Cloudformation Dev USE2##
+aws cloudformation create-stack --stack-name cjw01-it1-dev-use2-vpc --template-body file://Dev-VPC-Var-USE2.template --parameter ParameterKey=DeployBastion,ParameterValue=Yes ParameterKey=CFSS3Bucket,ParameterValue=http://s3-us-west-2.amazonaws.com/cc-infrafiles/cf_templates/ ParameterKey=TRNSGWVPCStack,ParameterValue=cjw01-it1-tnsgw-use2 --capabilities CAPABILITY_IAM --region us-east-2 --on-failure DO_NOTHING
+
+## Update VPC Cloudformation Dev USE2##
+aws cloudformation update-stack --stack-name cjw01-it1-dev-use2-vpc --template-body file://Dev-VPC-Var-USE2.template --parameter ParameterKey=DeployBastion,ParameterValue=Yes ParameterKey=CFSS3Bucket,ParameterValue=http://s3-us-west-2.amazonaws.com/cc-infrafiles/cf_templates/ ParameterKey=TRNSGWVPCStack,ParameterValue=cjw01-it1-tnsgw-use2 --region us-east-2
+
+
+## Launch VPC Cloudformation Prod USE2##
+aws cloudformation create-stack --stack-name cjw01-it1-prod-use2-vpc --template-body file://Prod-VPC-Var-USE2.template --parameter ParameterKey=DeployBastion,ParameterValue=Yes ParameterKey=CFSS3Bucket,ParameterValue=http://s3-us-west-2.amazonaws.com/cc-infrafiles/cf_templates/ ParameterKey=TRNSGWVPCStack,ParameterValue=cjw01-it1-tnsgw-use2 --capabilities CAPABILITY_IAM --region us-east-2 --on-failure DO_NOTHING
+
+## Update VPC Cloudformation Prod USE2##
+aws cloudformation update-stack --stack-name cjw01-it1-prod-use2-vpc --template-body file://Prod-VPC-Var-USE2.template --parameter ParameterKey=DeployBastion,ParameterValue=Yes ParameterKey=CFSS3Bucket,ParameterValue=http://s3-us-west-2.amazonaws.com/cc-infrafiles/cf_templates/ ParameterKey=TRNSGWVPCStack,ParameterValue=cjw01-it1-tnsgw-use2 --region us-east-2
+
+
+## TransitGateway Route updates
+./RteTble-Trnstgtwy.sh (AWS-Profile) (Region) (TransitGateway-CFN-Stackname)
+./RteTble-Trnstgtwy.sh default us-east-2 cjw01-it1-tnsgw-use2
+
+
+
+
+------ OpenVPN -------
+## Launch Cloudformation for OpenVPN CFS NEW!!! ##
+aws cloudformation create-stack --stack-name cc-poc-usw2-vpn01  --template-body file://Var_OpenVPN_10Usr.template --parameters ParameterKey=VarVPCStack,ParameterValue=cjw01-it1-corp-usw2-vpc ParameterKey=AdminPassword,ParameterValue=New2day2017! --capabilities CAPABILITY_IAM --region us-west-2
+
+
+## Launch Cloudformation for OpenVPN CFS NEW!!! ##
+aws cloudformation create-stack --stack-name cc01-vpn  --template-body file://Var_OpenVPN_10Usr.template --parameters ParameterKey=VarVPCStack,ParameterValue=cjw01-it1-corp-usw2-vpc ParameterKey=AdminPassword,ParameterValue=New2day2017! --capabilities CAPABILITY_IAM --region us-west-2
+
+
+
+
+
+## Run RDS Cloudformation
+
+aws cloudformation create-stack --stack-name test-mysql --template-body file://Variable-mysql-rds.template --parameter ParameterKey=ParentVPCStack,ParameterValue=cjw01-it1-corp-usw2-vpc ParameterKey=DBName,ParameterValue=testmysql ParameterKey=DBPassword,ParameterValue=New2day2017 ParameterKey=DBClass,ParameterValue=db.t2.micro ParameterKey=DBAllocatedStorage,ParameterValue=20
+
+
+## MySQL ##
+aws cloudformation create-stack --stack-name test-mysql-01 --template-body file://Variable-mysql-rds.template --parameter ParameterKey=ParentVPCStack,ParameterValue=test-use2-01-vpc-14RCB64QRYV7B ParameterKey=IntR53VPCStack,ParameterValue=test-use2-01-introute53-XPONZP7EN9L4 ParameterKey=DBName,ParameterValue=testmysql ParameterKey=DBPassword,ParameterValue=New2day2017 ParameterKey=DBClass,ParameterValue=db.t2.small ParameterKey=DBAllocatedStorage,ParameterValue=20
+
+
+## MariaDB ##
+aws cloudformation create-stack --stack-name test-maria-01 --template-body file://Variable-maria-rds.template --parameter ParameterKey=ParentVPCStack,ParameterValue=test-use2-01-vpc-14RCB64QRYV7B ParameterKey=IntR53VPCStack,ParameterValue=test-use2-01-introute53-XPONZP7EN9L4 ParameterKey=DBName,ParameterValue=testmariadb ParameterKey=DBPassword,ParameterValue=New2day2017 ParameterKey=DBClass,ParameterValue=db.t2.small ParameterKey=DBAllocatedStorage,ParameterValue=20
+
+
+## Postgres ##
+aws cloudformation create-stack --stack-name test-postgres-01 --template-body file://Variable-postgres-rds.template --parameter ParameterKey=ParentVPCStack,ParameterValue=test-use2-01-vpc-14RCB64QRYV7B ParameterKey=IntR53VPCStack,ParameterValue=test-use2-01-introute53-XPONZP7EN9L4 ParameterKey=DBName,ParameterValue=testpostgresdb ParameterKey=DBPassword,ParameterValue=New2day2017 ParameterKey=DBClass,ParameterValue=db.t2.small ParameterKey=DBAllocatedStorage,ParameterValue=20
+
+## Aurora ##
+aws cloudformation create-stack --stack-name cc01-tcdb-01 --template-body file://Variable-aurora-rds.template --parameter ParameterKey=ParentVPCStack,ParameterValue=cc01-corp-usw2-vpc-2OU9KE52LNY0 ParameterKey=IntR53VPCStack,ParameterValue=cjw01-it1-corp-usw2-vpc-introute53-HWMLDUZD80FN ParameterKey=DBName,ParameterValue=tcdb ParameterKey=DBPassword,ParameterValue=New2day2017 ParameterKey=DBClass,ParameterValue=db.t2.small
+
+
+
+##launch default_base_ami
+time ansible-playbook services/default_base/build_base_ami.yml   --extra-vars "region=us-west-2 \
+                source_ami=ami-03804ed633fe58109 \
+                s3_log_bucket=ccnet-logs \
+                infra_stack_name=cjw01-it1-corp-usw2-vpc"
+
+time ansible-playbook services/default_base/default_base_ami.yml  -i inv --extra-vars "s3_log_bucket=ccnet-logs"

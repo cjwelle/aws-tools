@@ -1,0 +1,34 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+
+  "Description" : "CrankyClouds Cloudformation Infrastructure. TransitGateway; Cloudformation Version 0.1",
+
+  "Resources" : {
+    "TrnsGtwy": {
+      "Type": "AWS::EC2::TransitGateway",
+      "Properties": {
+        "Description": "TGW Route Integration",
+        "AutoAcceptSharedAttachments": "enable",
+        "DefaultRouteTableAssociation": "enable",
+        "DnsSupport": "enable",
+        "VpnEcmpSupport": "enable",
+        "Tags": [
+          {
+            "Key": "Application",
+            "Value": {
+              "Ref": "AWS::StackId"
+            }
+          }
+        ]
+      }
+    }
+  },
+
+  "Outputs" : {
+    "TransitGateway" : {
+      "Description" : "ID TransitGateway",
+      "Value" :  { "Ref" : "TrnsGtwy" },
+      "Export" : { "Name" : {"Fn::Sub": "${AWS::StackName}-transitgateway"}}
+    }
+  }
+}

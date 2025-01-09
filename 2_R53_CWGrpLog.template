@@ -1,0 +1,29 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+
+  "Description" : "CrankyClouds Cloudformation Infrastructure. Cloudwatch Log Group USE1 Cloudformation Version 0.1",
+
+
+  "Resources" : {
+    "CloudWatchLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+          "RetentionInDays": 7,
+          "LogGroupName": "Route53-LogGroup"
+      }
+    }
+  },
+
+  "Outputs" : {
+    "CloudwatchLogGroup" : {
+      "Value": {"Ref" : "CloudWatchLogGroup"},
+      "Description" : "R53 CloudwatchGroup",
+      "Export": { "Name" : {"Fn::Sub": "${AWS::StackName}-cloudwatchgrouplogid"}}
+    },
+    "CloudwatcLogGroupARN" : {
+      "Value": { "Fn::GetAtt": ["CloudWatchLogGroup", "Arn"] },
+      "Description" : "R53 CloudwatchGroup",
+      "Export": { "Name" : {"Fn::Sub": "${AWS::StackName}-cloudwatchgrouplogarn"}}
+    }
+  }
+}
